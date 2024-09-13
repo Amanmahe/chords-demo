@@ -69,6 +69,7 @@ const Connection: React.FC<ConnectionProps> = ({
   isDisplay,
   setIsDisplay,
 }) => {
+  const [missingSamples, setMissingSamples] = useState(0); // State to store the number of missing samples
   const [open, setOpen] = useState(false); // State to track if the recording popover is open
   const [isConnected, setIsConnected] = useState<boolean>(false); // State to track if the device is connected
   const isConnectedRef = useRef<boolean>(false); // Ref to track if the device is connected
@@ -173,15 +174,21 @@ const Connection: React.FC<ConnectionProps> = ({
     // Function to connect to the device
     try {
       await listen<Payload>("updateSerial", (event: any) => {
-        // console.log(event.payload.message);
         let previousCounter: number | null = null; // Variable to store the previous counter value for loss detection
         // console.log(event.payload.counter);
         const counter=event.payload.counter;
+        console.log(counter);
         if (previousCounter !== null) {
           // If there was a previous counter value
           const expectedCounter: number = (previousCounter + 1) % 256; // Calculate the expected counter value
           if (counter !== expectedCounter) {
             // Check for data loss by comparing the current counter with the expected counter
+            const missingCount = counter > previousCounter
+            ? counter - expectedCounter
+            : 256 + (counter - expectedCounter); // Handle overflow case when counter wraps
+
+            // Update the missing samples count
+          setMissingSamples((prev) => prev + missingCount);
             console.warn(
               `Data loss detected! Previous counter: ${previousCounter}, Current counter: ${counter}`
             );
@@ -746,7 +753,7 @@ const Connection: React.FC<ConnectionProps> = ({
             </Tooltip>
           </TooltipProvider>
         )}
-        {isConnected && (
+        {isConnected && (<>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -762,6 +769,10 @@ const Connection: React.FC<ConnectionProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+      <h4>MS:{missingSamples}</h4>
+    </div>
+          </>
         )}
       </div>
       <div className="flex-1"></div>
