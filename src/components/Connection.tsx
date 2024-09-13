@@ -166,13 +166,28 @@ const Connection: React.FC<ConnectionProps> = ({
   };
   type Payload = {
     message: Uint8Array;
+    counter:number;
 };
 
   const connectToDevice = async () => {
     // Function to connect to the device
     try {
       await listen<Payload>("updateSerial", (event: any) => {
-        console.log(event.payload.message);
+        // console.log(event.payload.message);
+        let previousCounter: number | null = null; // Variable to store the previous counter value for loss detection
+        // console.log(event.payload.counter);
+        const counter=event.payload.counter;
+        if (previousCounter !== null) {
+          // If there was a previous counter value
+          const expectedCounter: number = (previousCounter + 1) % 256; // Calculate the expected counter value
+          if (counter !== expectedCounter) {
+            // Check for data loss by comparing the current counter with the expected counter
+            console.warn(
+              `Data loss detected! Previous counter: ${previousCounter}, Current counter: ${counter}`
+            );
+          }
+        }
+        previousCounter = counter; // Update the previous counter with the current counter
         //what is that we want to mak is cominng from did not coming from serial port e the the data which
       LineData(event.payload.message); // Pass the channel data to the LineData function for further processing
       if (isRecordingRef.current) {

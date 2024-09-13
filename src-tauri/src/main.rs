@@ -13,6 +13,7 @@ const END_BYTE: u8 = 0x01;
 #[derive(Clone, serde::Serialize)]
 struct Payload {
     message: Vec<i16>,
+    counter:i16,
 }
 
 pub fn auto_detect_arduino() -> Option<String> {
@@ -111,7 +112,7 @@ pub fn receive_arduino_data(port_name: &str, app_handle: AppHandle) {
                                     let packet = accumulated_buffer.drain(..PACKET_SIZE).collect::<Vec<u8>>();
         
                                     // Extract counter byte and 6x 2-byte data values
-                                    let _counter = packet[2] as i16;
+                                    let counter = packet[2] as i16;
                                     let data: Vec<i16> = (0..6).map(|i| {
                                         let idx = 3 + (i * 2); // 4 is where the data starts
                                         let high = packet[idx] as i16;
@@ -120,7 +121,7 @@ pub fn receive_arduino_data(port_name: &str, app_handle: AppHandle) {
                                     }).collect();
                                     println!("Received raw data: {:?}", data);
                                     // Emit the data to the frontend
-                                    app_handle.emit_all("updateSerial", Payload { message: data }).unwrap();
+                                    app_handle.emit_all("updateSerial", Payload { message: data,counter: counter }).unwrap();
                                     
                                 } else {
                                     // Invalid end byte, skip the packet
